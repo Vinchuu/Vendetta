@@ -29,9 +29,60 @@ function App() {
   const [fundBalance, setFundBalance] = useState<number>(0);
   const [membersCount, setMembersCount] = useState<number>(0);
 
-  // Handle Discord OAuth Callback URL parameters on page load
+  // Handle Discord OAuth Callback (URL Hash or query params) on page load
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // 1. Process Discord OAuth2 Implicit Grant from URL Hash (#access_token=...&state=...)
+      if (window.location.hash.includes('access_token')) {
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const targetMode = (hashParams.get('state') || 'gangmember') as UserMode;
+
+        if (accessToken) {
+          fetch('https://discord.com/api/users/@me', {
+            headers: { Authorization: `Bearer ${accessToken}` }
+          })
+            .then(res => res.json())
+            .then(userData => {
+              const username = userData.global_name || userData.username || 'DiscordUser';
+              const discordId = userData.id;
+
+              const adminIds = ['879604109366394880'];
+              const memberIds = ['879604109366394880'];
+
+              const isAdmin = adminIds.includes(discordId);
+              const isMember = memberIds.includes(discordId);
+
+              let finalMode: UserMode = 'gangmember';
+              if (targetMode === 'admin') {
+                if (!isAdmin) {
+                  alert(`Access Denied: Discord ID ${discordId} (${username}) is not authorized for Leader access.`);
+                  window.history.replaceState({}, document.title, window.location.pathname);
+                  return;
+                }
+                finalMode = 'admin';
+              } else {
+                if (!isMember && !isAdmin) {
+                  alert(`Access Denied: Discord ID ${discordId} (${username}) is not authorized for Member access.`);
+                  window.history.replaceState({}, document.title, window.location.pathname);
+                  return;
+                }
+                finalMode = 'gangmember';
+              }
+
+              setUserMode(finalMode);
+              setDiscordUser(username);
+              window.history.replaceState({}, document.title, window.location.pathname);
+              soundFx.playSuccessSound();
+            })
+            .catch(err => {
+              console.error('Discord Auth fetch failed:', err);
+              window.history.replaceState({}, document.title, window.location.pathname);
+            });
+        }
+      }
+
+      // 2. Process query params fallback (?token=...&mode=...&username=...)
       const params = new URLSearchParams(window.location.search);
       const token = params.get('token');
       const mode = params.get('mode') as UserMode | null;

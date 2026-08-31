@@ -107,13 +107,12 @@ const DEFAULT_ANNOUNCEMENT: Announcement = {
 export const apiService = {
   // Authentication
   getDiscordLoginUrl(mode: string): string {
-    const isDev = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
     const clientId = '1543516731354382438';
-    const redirectUri = isDev 
-      ? 'http://localhost:5000/api/auth/discord/callback'
-      : `${window.location.origin}/api/auth/discord/callback`;
+    const redirectUri = typeof window !== 'undefined'
+      ? `${window.location.origin}/`
+      : 'http://localhost:5173/';
 
-    return `https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=identify&state=${mode}`;
+    return `https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=identify&state=${mode}`;
   },
 
   async login(mode: string, password?: string) {
