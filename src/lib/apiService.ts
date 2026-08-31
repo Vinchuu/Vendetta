@@ -1,4 +1,5 @@
-// Type definitions for FYB Gang System
+// Type definitions and Database Services for Vendetta Gang System
+import { supabase, isSupabaseConfigured } from './supabase';
 
 export interface Member {
   id: string;
@@ -45,12 +46,14 @@ export interface Order {
   }[];
   totalAmount: number;
   status: 'pending' | 'approved' | 'completed' | 'cancelled';
+  category?: string;
   orderDate: string;
 }
 
 export interface GangFund {
   id: string;
   baseAmount: number;
+  totalAmount?: number;
   lastUpdated: string;
   updatedBy: string;
 }
@@ -94,285 +97,740 @@ export interface StreamChannel {
   createdAt: string;
 }
 
-const API_BASE = '/api';
-
-async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${url}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-    ...options,
-  });
-
-  if (!res.ok) {
-    const errorText = await res.text();
-    let errorMessage = `HTTP Error ${res.status}`;
-    try {
-      const parsed = JSON.parse(errorText);
-      if (parsed.error || parsed.message) errorMessage = parsed.error || parsed.message;
-    } catch {
-      if (errorText) errorMessage = errorText;
-    }
-    throw new Error(errorMessage);
-  }
-
-  return res.json();
-}
+// In-memory fallback / announcement storage
+const DEFAULT_ANNOUNCEMENT: Announcement = {
+  text: "🔥 VENDETTA GANG ORDERS: Welcome to paradise. Pay weekly dues & prepare for Syndicate meeting!",
+  updatedBy: "Tatya Vinchu",
+  updatedAt: new Date().toISOString()
+};
 
 export const apiService = {
   // Authentication
   getDiscordLoginUrl(mode: string): string {
-    const isDev = typeof window !== 'undefined' && window.location.port === '8080';
-    const baseUrl = isDev ? 'http://localhost:5000' : '';
-    return `${baseUrl}/api/auth/discord/login?mode=${mode}`;
+    const isDev = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    const clientId = '1543516731354382438';
+    const redirectUri = isDev 
+      ? 'http://localhost:5000/api/auth/discord/callback'
+      : `${window.location.origin}/api/auth/discord/callback`;
+
+    return `https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=identify&state=${mode}`;
   },
 
   async login(mode: string, password?: string) {
-    return fetchJson<{ success: boolean; mode: string; token: string }>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ mode, password }),
-    });
+    const adminPassword = "YK789";
+    const gangMemberPassword = "takla";
+
+    if (
+      (mode === "admin" && password === adminPassword) ||
+      (mode === "gangmember" && password === gangMemberPassword)
+    ) {
+      return {
+        success: true,
+        mode,
+        token: `fyb_token_${mode}_${Date.now()}`
+      };
+    }
+
+    return {
+      success: false,
+      mode,
+      token: "",
+      message: "Invalid credentials! Access Denied."
+    };
   },
 
   // Members
   async getMembers(): Promise<Member[]> {
-    return fetchJson<Member[]>('/members');
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase.from('members').select('*').order('order', { ascending: true });
+      if (!error && data) {
+        return data.map(m => ({
+          id: m.id,
+          name: m.name,
+          rank: m.rank,
+          contribution: Number(m.contribution || 0),
+          hasPaid: Boolean(m.has_paid),
+          joinDate: m.join_date || m.created_at,
+          order: m.order || 0
+        }));
+      }
+    }
+    return [];
   },
 
   async addMember(member: Omit<Member, 'id'>): Promise<Member> {
-    return fetchJson<Member>('/members', {
-      method: 'POST',
-      body: JSON.stringify(member),
-    });
+    const id = `mem_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const joinDate = member.joinDate || new Date().toISOString();
+    
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase.from('members').insert({
+        id,
+        name: member.name,
+        rank: member.rank || 'recruit',
+        contribution: member.contribution || 100,
+        has_paid: Boolean(member.hasPaid),
+        join_date: joinDate,
+        order: member.order || 1
+      }).select().single();
+
+      if (error) throw new Error(error.message);
+      if (data) {
+        return {
+          id: data.id,
+          name: data.name,
+          rank: data.rank,
+          contribution: Number(data.contribution),
+          hasPaid: Boolean(data.has_paid),
+          joinDate: data.join_date,
+          order: data.order
+        };
+      }
+    }
+
+    return { id, ...member, joinDate };
   },
 
   async updateMember(id: string, updates: Partial<Member>): Promise<Member> {
-    return fetchJson<Member>(`/members/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(updates),
-    });
+    if (isSupabaseConfigured) {
+      const dbUpdates: Record<string, any> = {};
+      if (updates.name !== undefined) dbUpdates.name = updates.name;
+      if (updates.rank !== undefined) dbUpdates.rank = updates.rank;
+      if (updates.contribution !== undefined) dbUpdates.contribution = updates.contribution;
+      if (updates.hasPaid !== undefined) dbUpdates.has_paid = updates.hasPaid;
+      if (updates.order !== undefined) dbUpdates.order = updates.order;
+      if (updates.joinDate !== undefined) dbUpdates.join_date = updates.joinDate;
+
+      const { data, error } = await supabase.from('members').update(dbUpdates).eq('id', id).select().single();
+      if (error) throw new Error(error.message);
+      if (data) {
+        return {
+          id: data.id,
+          name: data.name,
+          rank: data.rank,
+          contribution: Number(data.contribution),
+          hasPaid: Boolean(data.has_paid),
+          joinDate: data.join_date,
+          order: data.order
+        };
+      }
+    }
+    return { id, name: updates.name || '', contribution: updates.contribution || 0, hasPaid: Boolean(updates.hasPaid), joinDate: '', order: 0, ...updates };
   },
 
   async batchUpdateMembers(updates: { id: string; updates: Partial<Member> }[]): Promise<Member[]> {
-    return fetchJson<Member[]>('/members/batch-update', {
-      method: 'POST',
-      body: JSON.stringify({ updates }),
-    });
+    for (const item of updates) {
+      await apiService.updateMember(item.id, item.updates);
+    }
+    return apiService.getMembers();
   },
 
   async deleteMember(id: string): Promise<void> {
-    await fetchJson<{ success: boolean }>(`/members/${id}`, {
-      method: 'DELETE',
-    });
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.from('members').delete().eq('id', id);
+      if (error) throw new Error(error.message);
+    }
   },
 
   subscribeToMembers(callback: (members: Member[]) => void): () => void {
-    return apiService.subscribeToEvent('members_updated', callback);
+    if (!isSupabaseConfigured || typeof window === 'undefined') return () => {};
+    const channel = supabase.channel('members_channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, async () => {
+        const members = await apiService.getMembers();
+        callback(members);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   },
 
   // Transactions
   async getTransactions(): Promise<Transaction[]> {
-    return fetchJson<Transaction[]>('/transactions');
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase.from('transactions').select('*').order('date', { ascending: false });
+      if (!error && data) {
+        return data.map(t => ({
+          id: t.id,
+          description: t.description,
+          amount: Number(t.amount || 0),
+          date: t.date,
+          type: t.type as 'income' | 'expense',
+          category: t.category
+        }));
+      }
+    }
+    return [];
   },
 
   async addTransaction(transaction: Omit<Transaction, 'id'>): Promise<Transaction> {
-    return fetchJson<Transaction>('/transactions', {
-      method: 'POST',
-      body: JSON.stringify(transaction),
-    });
+    const id = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const date = transaction.date || new Date().toISOString();
+
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase.from('transactions').insert({
+        id,
+        description: transaction.description,
+        amount: transaction.amount,
+        type: transaction.type,
+        category: transaction.category,
+        date
+      }).select().single();
+
+      if (error) throw new Error(error.message);
+      if (data) {
+        return {
+          id: data.id,
+          description: data.description,
+          amount: Number(data.amount),
+          type: data.type,
+          category: data.category,
+          date: data.date
+        };
+      }
+    }
+
+    return { id, ...transaction, date };
   },
 
   async deleteTransaction(id: string): Promise<void> {
-    await fetchJson<{ success: boolean }>(`/transactions/${id}`, {
-      method: 'DELETE',
-    });
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.from('transactions').delete().eq('id', id);
+      if (error) throw new Error(error.message);
+    }
   },
 
   subscribeToTransactions(callback: (transactions: Transaction[]) => void): () => void {
-    return apiService.subscribeToEvent('transactions_updated', callback);
+    if (!isSupabaseConfigured || typeof window === 'undefined') return () => {};
+    const channel = supabase.channel('transactions_channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, async () => {
+        const txs = await apiService.getTransactions();
+        callback(txs);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   },
 
   // Items
   async getItems(): Promise<Item[]> {
-    return fetchJson<Item[]>('/items');
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase.from('items').select('*').order('name', { ascending: true });
+      if (!error && data) {
+        return data.map(i => ({
+          id: i.id,
+          name: i.name,
+          price: Number(i.price || 0),
+          category: i.category,
+          description: i.description
+        }));
+      }
+    }
+    return [];
   },
 
   async addItem(item: Omit<Item, 'id'>): Promise<Item> {
-    return fetchJson<Item>('/items', {
-      method: 'POST',
-      body: JSON.stringify(item),
-    });
+    const id = `item_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase.from('items').insert({
+        id,
+        name: item.name,
+        price: item.price,
+        category: item.category,
+        description: item.description
+      }).select().single();
+
+      if (error) throw new Error(error.message);
+      if (data) {
+        return {
+          id: data.id,
+          name: data.name,
+          price: Number(data.price),
+          category: data.category,
+          description: data.description
+        };
+      }
+    }
+    return { id, ...item };
   },
 
   async updateItem(id: string, updates: Partial<Item>): Promise<Item> {
-    return fetchJson<Item>(`/items/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(updates),
-    });
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase.from('items').update(updates).eq('id', id).select().single();
+      if (error) throw new Error(error.message);
+      if (data) {
+        return {
+          id: data.id,
+          name: data.name,
+          price: Number(data.price),
+          category: data.category,
+          description: data.description
+        };
+      }
+    }
+    return { id, name: '', price: 0, category: '', ...updates };
   },
 
   async deleteItem(id: string): Promise<void> {
-    await fetchJson<{ success: boolean }>(`/items/${id}`, {
-      method: 'DELETE',
-    });
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.from('items').delete().eq('id', id);
+      if (error) throw new Error(error.message);
+    }
   },
 
   subscribeToItems(callback: (items: Item[]) => void): () => void {
-    return apiService.subscribeToEvent('items_updated', callback);
+    if (!isSupabaseConfigured || typeof window === 'undefined') return () => {};
+    const channel = supabase.channel('items_channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'items' }, async () => {
+        const items = await apiService.getItems();
+        callback(items);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   },
 
   // Orders
   async getOrders(): Promise<Order[]> {
-    return fetchJson<Order[]>('/orders');
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase.from('orders').select('*').order('order_date', { ascending: false });
+      if (!error && data) {
+        return data.map(o => ({
+          id: o.id,
+          memberId: o.member_id,
+          memberName: o.member_name,
+          items: o.items || [],
+          totalAmount: Number(o.total_amount || 0),
+          status: o.status,
+          category: o.category || 'arsenal',
+          orderDate: o.order_date
+        }));
+      }
+    }
+    return [];
   },
 
   async addOrder(order: Omit<Order, 'id'>): Promise<Order> {
-    return fetchJson<Order>('/orders', {
-      method: 'POST',
-      body: JSON.stringify(order),
-    });
+    const id = `ord_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const orderDate = order.orderDate || new Date().toISOString();
+
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase.from('orders').insert({
+        id,
+        member_id: order.memberId,
+        member_name: order.memberName,
+        items: order.items,
+        total_amount: order.totalAmount,
+        status: order.status || 'pending',
+        category: order.category || 'arsenal',
+        order_date: orderDate
+      }).select().single();
+
+      if (error) throw new Error(error.message);
+      if (data) {
+        return {
+          id: data.id,
+          memberId: data.member_id,
+          memberName: data.member_name,
+          items: data.items,
+          totalAmount: Number(data.total_amount),
+          status: data.status,
+          category: data.category,
+          orderDate: data.order_date
+        };
+      }
+    }
+
+    return { id, ...order, orderDate };
   },
 
   async updateOrder(id: string, updates: Partial<Order>): Promise<Order> {
-    return fetchJson<Order>(`/orders/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(updates),
-    });
+    if (isSupabaseConfigured) {
+      const dbUpdates: Record<string, any> = {};
+      if (updates.status !== undefined) dbUpdates.status = updates.status;
+      if (updates.totalAmount !== undefined) dbUpdates.total_amount = updates.totalAmount;
+      if (updates.items !== undefined) dbUpdates.items = updates.items;
+      if (updates.category !== undefined) dbUpdates.category = updates.category;
+
+      const { data, error } = await supabase.from('orders').update(dbUpdates).eq('id', id).select().single();
+      if (error) throw new Error(error.message);
+      if (data) {
+        // If order marked completed, auto-deposit to Gang Fund and create Income Transaction
+        if (updates.status === 'completed') {
+          const isSyndicate = data.category === 'syndicate';
+          const categoryLabel = isSyndicate ? 'Syndicate Deal' : 'Arsenal Order';
+          const categoryKey = isSyndicate ? 'syndicate_deal' : 'arsenal_order';
+
+          await apiService.addTransaction({
+            description: `${categoryLabel} Income: ${data.member_name}`,
+            amount: Number(data.total_amount),
+            type: 'income',
+            category: categoryKey,
+            date: new Date().toISOString()
+          }).catch(console.error);
+
+          const currentFund = await apiService.getGangFund();
+          const currentBase = currentFund?.baseAmount || 0;
+          await apiService.updateGangFund(currentBase + Number(data.total_amount), `${categoryLabel}: ${data.member_name}`).catch(console.error);
+        }
+
+        return {
+          id: data.id,
+          memberId: data.member_id,
+          memberName: data.member_name,
+          items: data.items,
+          totalAmount: Number(data.total_amount),
+          status: data.status,
+          category: data.category,
+          orderDate: data.order_date
+        };
+      }
+    }
+    return { id, memberId: '', memberName: '', items: [], totalAmount: 0, status: 'pending', orderDate: '', ...updates };
   },
 
   async deleteOrder(id: string): Promise<void> {
-    await fetchJson<{ success: boolean }>(`/orders/${id}`, {
-      method: 'DELETE',
-    });
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.from('orders').delete().eq('id', id);
+      if (error) throw new Error(error.message);
+    }
   },
 
   subscribeToOrders(callback: (orders: Order[]) => void): () => void {
-    return apiService.subscribeToEvent('orders_updated', callback);
+    if (!isSupabaseConfigured || typeof window === 'undefined') return () => {};
+    const channel = supabase.channel('orders_channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, async () => {
+        const orders = await apiService.getOrders();
+        callback(orders);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   },
 
   // Gang Fund
   async getGangFund(): Promise<GangFund | null> {
-    return fetchJson<GangFund>('/gangfund');
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase.from('gangfund').select('*').limit(1).single();
+      if (!error && data) {
+        return {
+          id: data.id,
+          baseAmount: Number(data.base_amount || 0),
+          lastUpdated: data.last_updated,
+          updatedBy: data.updated_by
+        };
+      }
+    }
+    return {
+      id: "main",
+      baseAmount: 20000,
+      lastUpdated: new Date().toISOString(),
+      updatedBy: "system"
+    };
   },
 
   async updateGangFund(baseAmount: number, updatedBy: string): Promise<GangFund> {
-    return fetchJson<GangFund>('/gangfund', {
-      method: 'PUT',
-      body: JSON.stringify({ baseAmount, updatedBy }),
-    });
+    const lastUpdated = new Date().toISOString();
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase.from('gangfund').upsert({
+        id: "main",
+        base_amount: Number(baseAmount),
+        last_updated: lastUpdated,
+        updated_by: updatedBy || "admin"
+      }).select().single();
+
+      if (error) throw new Error(error.message);
+      if (data) {
+        return {
+          id: data.id,
+          baseAmount: Number(data.base_amount),
+          lastUpdated: data.last_updated,
+          updatedBy: data.updated_by
+        };
+      }
+    }
+    return { id: "main", baseAmount, lastUpdated, updatedBy };
   },
 
   subscribeToGangFund(callback: (fund: GangFund) => void): () => void {
-    return apiService.subscribeToEvent('gangfund_updated', callback);
+    if (!isSupabaseConfigured || typeof window === 'undefined') return () => {};
+    const channel = supabase.channel('gangfund_channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'gangfund' }, async () => {
+        const fund = await apiService.getGangFund();
+        if (fund) callback(fund);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   },
 
   // Gang Announcement
   async getAnnouncement(): Promise<Announcement> {
-    return fetchJson<Announcement>('/announcement');
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('vendetta_announcement');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {}
+      }
+    }
+    return DEFAULT_ANNOUNCEMENT;
   },
 
   async updateAnnouncement(text: string, updatedBy: string): Promise<Announcement> {
-    return fetchJson<Announcement>('/announcement', {
-      method: 'PUT',
-      body: JSON.stringify({ text, updatedBy }),
-    });
+    const updated: Announcement = {
+      text,
+      updatedBy: updatedBy || "Leader",
+      updatedAt: new Date().toISOString()
+    };
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('vendetta_announcement', JSON.stringify(updated));
+    }
+    return updated;
   },
 
   subscribeToAnnouncement(callback: (announcement: Announcement) => void): () => void {
-    return apiService.subscribeToEvent('announcement_updated', callback);
+    if (typeof window !== 'undefined') {
+      const handler = () => {
+        apiService.getAnnouncement().then(callback);
+      };
+      window.addEventListener('storage', handler);
+      return () => window.removeEventListener('storage', handler);
+    }
+    return () => {};
   },
 
-  // Weekly Payment Records & Audit Logs
+  // Weekly Payment Records
   async getWeeklyPaymentRecords(): Promise<WeeklyPaymentRecord[]> {
-    return fetchJson<WeeklyPaymentRecord[]>('/weekly-payment-records');
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase.from('weekly_payment_records').select('*').order('week_number', { ascending: false });
+      if (!error && data) {
+        return data.map(r => ({
+          id: r.id,
+          memberId: r.member_id,
+          memberName: r.member_name,
+          weekStart: r.week_start,
+          weekEnd: r.week_end,
+          weekNumber: Number(r.week_number),
+          contribution: Number(r.contribution || 0),
+          hasPaid: Boolean(r.has_paid),
+          paymentDate: r.payment_date,
+          markedBy: r.marked_by,
+          markedAt: r.marked_at,
+          notes: r.notes
+        }));
+      }
+    }
+    return [];
   },
 
   async upsertWeeklyPaymentRecord(record: Omit<WeeklyPaymentRecord, 'id'>): Promise<WeeklyPaymentRecord> {
-    return fetchJson<WeeklyPaymentRecord>('/weekly-payment-records/upsert', {
-      method: 'POST',
-      body: JSON.stringify(record),
-    });
+    const id = `rec_${record.memberId}_${record.weekNumber}`;
+    const markedAt = new Date().toISOString();
+
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase.from('weekly_payment_records').upsert({
+        id,
+        member_id: record.memberId,
+        member_name: record.memberName,
+        week_start: record.weekStart,
+        week_end: record.weekEnd,
+        week_number: record.weekNumber,
+        contribution: record.contribution,
+        has_paid: Boolean(record.hasPaid),
+        payment_date: record.paymentDate || (record.hasPaid ? new Date().toISOString() : null),
+        marked_by: record.markedBy || 'admin',
+        marked_at: markedAt,
+        notes: record.notes || ''
+      }).select().single();
+
+      if (error) throw new Error(error.message);
+      if (data) {
+        return {
+          id: data.id,
+          memberId: data.member_id,
+          memberName: data.member_name,
+          weekStart: data.week_start,
+          weekEnd: data.week_end,
+          weekNumber: Number(data.week_number),
+          contribution: Number(data.contribution),
+          hasPaid: Boolean(data.has_paid),
+          paymentDate: data.payment_date,
+          markedBy: data.marked_by,
+          markedAt: data.marked_at,
+          notes: data.notes
+        };
+      }
+    }
+
+    return { id, ...record, markedAt };
   },
 
   async deleteWeeklyPaymentRecord(id: string): Promise<void> {
-    await fetchJson<{ success: boolean }>(`/weekly-payment-records/${id}`, {
-      method: 'DELETE',
-    });
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.from('weekly_payment_records').delete().eq('id', id);
+      if (error) throw new Error(error.message);
+    }
   },
 
   subscribeToWeeklyPaymentRecords(callback: (records: WeeklyPaymentRecord[]) => void): () => void {
-    return apiService.subscribeToEvent('weekly_payments_updated', callback);
+    if (!isSupabaseConfigured || typeof window === 'undefined') return () => {};
+    const channel = supabase.channel('weekly_records_channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'weekly_payment_records' }, async () => {
+        const records = await apiService.getWeeklyPaymentRecords();
+        callback(records);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   },
 
   async getAuditLogs(): Promise<AuditLog[]> {
-    return fetchJson<AuditLog[]>('/audit-logs');
+    const records = await apiService.getWeeklyPaymentRecords();
+    return records.map(r => ({
+      id: r.id,
+      weekStart: r.weekStart,
+      weekEnd: r.weekEnd,
+      weekNumber: r.weekNumber,
+      memberId: r.memberId,
+      memberName: r.memberName,
+      hasPaid: r.hasPaid,
+      contribution: r.contribution,
+      paymentDate: r.paymentDate,
+      createdAt: r.markedAt
+    }));
   },
 
   async addAuditLog(auditLog: Omit<AuditLog, 'id'>): Promise<AuditLog> {
-    return fetchJson<AuditLog>('/audit-logs', {
-      method: 'POST',
-      body: JSON.stringify(auditLog),
+    const rec = await apiService.upsertWeeklyPaymentRecord({
+      memberId: auditLog.memberId,
+      memberName: auditLog.memberName,
+      weekStart: auditLog.weekStart,
+      weekEnd: auditLog.weekEnd,
+      weekNumber: auditLog.weekNumber,
+      contribution: auditLog.contribution,
+      hasPaid: auditLog.hasPaid,
+      paymentDate: auditLog.paymentDate,
+      markedBy: 'admin',
+      markedAt: auditLog.createdAt
     });
+    return {
+      id: rec.id,
+      weekStart: rec.weekStart,
+      weekEnd: rec.weekEnd,
+      weekNumber: rec.weekNumber,
+      memberId: rec.memberId,
+      memberName: rec.memberName,
+      hasPaid: rec.hasPaid,
+      contribution: rec.contribution,
+      paymentDate: rec.paymentDate,
+      createdAt: rec.markedAt
+    };
   },
 
   subscribeToAuditLogs(callback: (logs: AuditLog[]) => void): () => void {
-    return apiService.subscribeToEvent('audit_logs_updated', callback);
+    return apiService.subscribeToWeeklyPaymentRecords(records => {
+      callback(records.map(r => ({
+        id: r.id,
+        weekStart: r.weekStart,
+        weekEnd: r.weekEnd,
+        weekNumber: r.weekNumber,
+        memberId: r.memberId,
+        memberName: r.memberName,
+        hasPaid: r.hasPaid,
+        contribution: r.contribution,
+        paymentDate: r.paymentDate,
+        createdAt: r.markedAt
+      })));
+    });
   },
 
   // Live Streams
   async getStreams(): Promise<StreamChannel[]> {
-    return fetchJson<StreamChannel[]>('/streams');
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase.from('streams').select('*').order('created_at', { ascending: false });
+      if (!error && data) {
+        return data.map(s => ({
+          id: s.id,
+          memberName: s.member_name,
+          platform: s.platform as 'kick' | 'youtube' | 'twitch',
+          channelSlug: s.channel_slug,
+          title: s.title,
+          isLive: Boolean(s.is_live),
+          addedBy: s.added_by,
+          createdAt: s.created_at
+        }));
+      }
+    }
+    return [];
   },
 
   async addStream(stream: Omit<StreamChannel, 'id' | 'createdAt'>): Promise<StreamChannel> {
-    return fetchJson<StreamChannel>('/streams', {
-      method: 'POST',
-      body: JSON.stringify(stream),
-    });
+    const id = `stream_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const createdAt = new Date().toISOString();
+
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase.from('streams').insert({
+        id,
+        member_name: stream.memberName,
+        platform: stream.platform,
+        channel_slug: stream.channelSlug,
+        title: stream.title || 'Live Stream',
+        is_live: stream.isLive !== false,
+        added_by: stream.addedBy || 'Member'
+      }).select().single();
+
+      if (error) throw new Error(error.message);
+      if (data) {
+        return {
+          id: data.id,
+          memberName: data.member_name,
+          platform: data.platform,
+          channelSlug: data.channel_slug,
+          title: data.title,
+          isLive: Boolean(data.is_live),
+          addedBy: data.added_by,
+          createdAt: data.created_at
+        };
+      }
+    }
+
+    return { id, ...stream, createdAt };
   },
 
   async deleteStream(id: string): Promise<void> {
-    await fetchJson<{ success: boolean }>(`/streams/${id}`, {
-      method: 'DELETE',
-    });
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.from('streams').delete().eq('id', id);
+      if (error) throw new Error(error.message);
+    }
   },
 
   subscribeToStreams(callback: (streams: StreamChannel[]) => void): () => void {
-    return apiService.subscribeToEvent('streams_updated', callback);
-  },
-
-  // Real-Time SSE Subscription Helper
-  subscribeToEvent<T>(eventType: string, callback: (data: T) => void): () => void {
-    if (typeof window === 'undefined') return () => {};
-
-    const eventSource = new EventSource('/api/events');
-    eventSource.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data);
-        if (payload.type === eventType && payload.data !== undefined && payload.data !== null) {
-          // Prevent SSE reconnects from wiping out existing state with empty array broadcast
-          if (Array.isArray(payload.data) && payload.data.length === 0) {
-            return;
-          }
-          callback(payload.data);
-        }
-      } catch (err) {
-        console.error('Failed to parse SSE event payload:', err);
-      }
-    };
-
-    eventSource.onerror = (err) => {
-      // EventSource will automatically attempt to reconnect
-    };
+    if (!isSupabaseConfigured || typeof window === 'undefined') return () => {};
+    const channel = supabase.channel('streams_channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'streams' }, async () => {
+        const streams = await apiService.getStreams();
+        callback(streams);
+      })
+      .subscribe();
 
     return () => {
-      eventSource.close();
+      supabase.removeChannel(channel);
     };
   },
 
-  // Export URLs
+  // Export CSV Helper
   getExportCsvUrl(type: 'transactions' | 'auditlogs'): string {
-    return `${API_BASE}/export/csv?type=${type}`;
+    return `/api/export/csv?type=${type}`;
   }
 };
