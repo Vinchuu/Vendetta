@@ -291,13 +291,12 @@ export function AuditLogsTab({ isAdmin }: AuditLogsTabProps) {
           </p>
         </div>
 
-        <a
-          href={apiService.getExportCsvUrl("auditlogs")}
-          download="weekly_audit_report.csv"
+        <Button
+          onClick={() => apiService.downloadAuditLogsCsv()}
           className="btn-gang-outline flex items-center shrink-0"
         >
           <Download className="w-4 h-4 mr-2" /> Export Audit CSV Report
-        </a>
+        </Button>
       </div>
 
       {/* Summary Metrics & Historical Efficiency Bar */}

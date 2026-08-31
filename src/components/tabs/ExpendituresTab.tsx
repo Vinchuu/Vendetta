@@ -185,14 +185,12 @@ export const ExpendituresTab = ({ isAdmin }: ExpendituresTabProps) => {
           </p>
         </div>
 
-        <a
-          href="/api/export/csv?type=transactions"
-          target="_blank"
-          rel="noreferrer"
+        <Button
+          onClick={() => apiService.downloadTransactionsCsv()}
           className="btn-gang-outline flex items-center shrink-0"
         >
           <Download className="w-4 h-4 mr-2" /> Download Vault CSV
-        </a>
+        </Button>
       </div>
 
       {/* Financial Overview Metrics & Vault Progress Bar */}

@@ -1,4 +1,4 @@
-// Type definitions and Database Services for Vendetta Gang System
+// 100% Pure Supabase Backend & API Service for Vendetta Gang System
 import { supabase, isSupabaseConfigured } from './supabase';
 
 export interface Member {
@@ -97,7 +97,6 @@ export interface StreamChannel {
   createdAt: string;
 }
 
-// In-memory fallback / announcement storage
 const DEFAULT_ANNOUNCEMENT: Announcement = {
   text: "🔥 VENDETTA GANG ORDERS: Welcome to paradise. Pay weekly dues & prepare for Syndicate meeting!",
   updatedBy: "Tatya Vinchu",
@@ -105,7 +104,7 @@ const DEFAULT_ANNOUNCEMENT: Announcement = {
 };
 
 export const apiService = {
-  // Authentication
+  // Authentication via Discord & Dev Passcodes
   getDiscordLoginUrl(mode: string): string {
     const clientId = '1543516731354382438';
     const redirectUri = typeof window !== 'undefined'
@@ -138,7 +137,7 @@ export const apiService = {
     };
   },
 
-  // Members
+  // Members (Supabase Table: members)
   async getMembers(): Promise<Member[]> {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase.from('members').select('*').order('order', { ascending: true });
@@ -153,6 +152,7 @@ export const apiService = {
           order: m.order || 0
         }));
       }
+      if (error) console.error('Supabase getMembers error:', error);
     }
     return [];
   },
@@ -160,7 +160,7 @@ export const apiService = {
   async addMember(member: Omit<Member, 'id'>): Promise<Member> {
     const id = `mem_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const joinDate = member.joinDate || new Date().toISOString();
-    
+
     if (isSupabaseConfigured) {
       const { data, error } = await supabase.from('members').insert({
         id,
@@ -244,7 +244,7 @@ export const apiService = {
     };
   },
 
-  // Transactions
+  // Transactions (Supabase Table: transactions)
   async getTransactions(): Promise<Transaction[]> {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase.from('transactions').select('*').order('date', { ascending: false });
@@ -258,6 +258,7 @@ export const apiService = {
           category: t.category
         }));
       }
+      if (error) console.error('Supabase getTransactions error:', error);
     }
     return [];
   },
@@ -313,7 +314,7 @@ export const apiService = {
     };
   },
 
-  // Items
+  // Items (Supabase Table: items)
   async getItems(): Promise<Item[]> {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase.from('items').select('*').order('name', { ascending: true });
@@ -326,6 +327,7 @@ export const apiService = {
           description: i.description
         }));
       }
+      if (error) console.error('Supabase getItems error:', error);
     }
     return [];
   },
@@ -393,7 +395,7 @@ export const apiService = {
     };
   },
 
-  // Orders
+  // Orders (Supabase Table: orders)
   async getOrders(): Promise<Order[]> {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase.from('orders').select('*').order('order_date', { ascending: false });
@@ -409,6 +411,7 @@ export const apiService = {
           orderDate: o.order_date
         }));
       }
+      if (error) console.error('Supabase getOrders error:', error);
     }
     return [];
   },
@@ -458,7 +461,7 @@ export const apiService = {
       const { data, error } = await supabase.from('orders').update(dbUpdates).eq('id', id).select().single();
       if (error) throw new Error(error.message);
       if (data) {
-        // If order marked completed, auto-deposit to Gang Fund and create Income Transaction
+        // When order marked completed, automatically update Treasury transactions and Gang Fund in Supabase
         if (updates.status === 'completed') {
           const isSyndicate = data.category === 'syndicate';
           const categoryLabel = isSyndicate ? 'Syndicate Deal' : 'Arsenal Order';
@@ -513,7 +516,7 @@ export const apiService = {
     };
   },
 
-  // Gang Fund
+  // Gang Fund (Supabase Table: gangfund)
   async getGangFund(): Promise<GangFund | null> {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase.from('gangfund').select('*').limit(1).single();
@@ -607,7 +610,7 @@ export const apiService = {
     return () => {};
   },
 
-  // Weekly Payment Records
+  // Weekly Payment Records (Supabase Table: weekly_payment_records)
   async getWeeklyPaymentRecords(): Promise<WeeklyPaymentRecord[]> {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase.from('weekly_payment_records').select('*').order('week_number', { ascending: false });
@@ -627,6 +630,7 @@ export const apiService = {
           notes: r.notes
         }));
       }
+      if (error) console.error('Supabase getWeeklyPaymentRecords error:', error);
     }
     return [];
   },
@@ -754,7 +758,7 @@ export const apiService = {
     });
   },
 
-  // Live Streams
+  // Live Streams (Supabase Table: streams)
   async getStreams(): Promise<StreamChannel[]> {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase.from('streams').select('*').order('created_at', { ascending: false });
@@ -770,6 +774,7 @@ export const apiService = {
           createdAt: s.created_at
         }));
       }
+      if (error) console.error('Supabase getStreams error:', error);
     }
     return [];
   },
@@ -786,7 +791,7 @@ export const apiService = {
         channel_slug: stream.channelSlug,
         title: stream.title || 'Live Stream',
         is_live: stream.isLive !== false,
-        added_by: stream.addedBy || 'Member'
+        added_by: stream.addedBy || 'Leader'
       }).select().single();
 
       if (error) throw new Error(error.message);
@@ -828,8 +833,42 @@ export const apiService = {
     };
   },
 
-  // Export CSV Helper
+  // In-browser Client-side CSV Exporters (Zero Backend Required)
+  async downloadTransactionsCsv(): Promise<void> {
+    const txs = await apiService.getTransactions();
+    let csv = 'ID,Date,Description,Category,Type,Amount\n';
+    txs.forEach(t => {
+      csv += `"${t.id}","${t.date}","${(t.description || '').replace(/"/g, '""')}","${t.category}","${t.type}",${t.amount}\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'money_moves_report.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  },
+
+  async downloadAuditLogsCsv(): Promise<void> {
+    const records = await apiService.getWeeklyPaymentRecords();
+    let csv = 'ID,Member,WeekNumber,Contribution,HasPaid,MarkedBy,MarkedAt,Notes\n';
+    records.forEach(r => {
+      csv += `"${r.id}","${r.memberName}",${r.weekNumber},${r.contribution},${r.hasPaid ? 'YES' : 'NO'},"${r.markedBy}","${r.markedAt}","${(r.notes || '').replace(/"/g, '""')}"\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'weekly_audit_report.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  },
+
   getExportCsvUrl(type: 'transactions' | 'auditlogs'): string {
-    return `/api/export/csv?type=${type}`;
+    return `#export-${type}`;
   }
 };
