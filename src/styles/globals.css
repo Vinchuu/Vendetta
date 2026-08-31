@@ -1,0 +1,123 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&family=Outfit:wght@400;600;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 3%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 5%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 4%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 84% 60%;
+    --primary-foreground: 0 0% 98%;
+    --primary-glow: 0 95% 65%;
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 65%;
+    --accent: 0 80% 12%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 85% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 50% 15%;
+    --input: 0 50% 15%;
+    --ring: 0 84% 60%;
+    --radius: 0.85rem;
+    
+    /* Gang-specific Crimson Red & Obsidian Palette */
+    --gang-red: 0 85% 58%;
+    --gang-red-dark: 0 90% 40%;
+    --gang-neon: 0 100% 65%;
+    --gang-dark: 0 0% 3%;
+    --gang-card: 0 30% 6%;
+    --success: 142.1 76.2% 36.3%;
+    --warning: 45 93% 47%;
+    
+    /* Studio Glows & Shadows */
+    --shadow-gang: 0 12px 30px -5px rgba(220, 38, 38, 0.35);
+    --shadow-neon: 0 0 25px rgba(239, 68, 68, 0.6);
+    --glow-red: 0 0 35px rgba(220, 38, 38, 0.5);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground selection:bg-red-600 selection:text-white;
+    font-family: 'Rajdhani', 'Outfit', sans-serif;
+    background-image: 
+      radial-gradient(ellipse at 50% 0%, rgba(220, 38, 38, 0.15) 0%, transparent 60%),
+      radial-gradient(circle at 80% 80%, rgba(185, 28, 28, 0.08) 0%, transparent 50%);
+    background-attachment: fixed;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(10, 10, 10, 0.8);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(220, 38, 38, 0.5);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(239, 68, 68, 0.8);
+}
+
+@layer components {
+  /* Premium AAA Glassmorphic Cards */
+  .card-gang {
+    @apply bg-black/60 backdrop-blur-xl border border-red-900/30 rounded-xl shadow-xl transition-all duration-300 relative overflow-hidden;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(239, 68, 68, 0.1);
+  }
+  
+  .card-gang:hover {
+    box-shadow: 0 12px 40px -5px rgba(220, 38, 38, 0.25), inset 0 0 0 1px rgba(239, 68, 68, 0.3);
+  }
+
+  /* Interactive Studio Action Buttons */
+  .btn-gang {
+    @apply bg-gradient-to-r from-red-700 via-red-600 to-rose-700 hover:from-red-600 hover:to-rose-600 text-white font-rajdhani font-bold px-5 py-2.5 rounded-lg shadow-lg shadow-red-950/60 hover:shadow-[0_0_25px_rgba(239,68,68,0.6)] active:scale-[0.98] transition-all duration-200 uppercase tracking-wider text-sm flex items-center justify-center;
+  }
+  
+  .btn-gang-outline {
+    @apply bg-red-950/30 border border-red-600/50 text-red-300 hover:bg-red-900/40 hover:border-red-500 hover:text-white font-rajdhani font-bold px-4 py-2 rounded-lg transition-all duration-200 text-sm flex items-center justify-center;
+  }
+  
+  /* Text Gradients */
+  .text-gang-glow {
+    background: linear-gradient(135deg, #ffffff 0%, #fca5a5 40%, #ef4444 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.4));
+  }
+
+  .text-gradient-gold {
+    background: linear-gradient(135deg, #fef08a 0%, #fde047 50%, #eab308 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Sleek Tactical Pill Badges */
+  .badge-tactical {
+    @apply px-3 py-1 rounded-full text-xs font-bold font-orbitron uppercase tracking-wider border backdrop-blur-md shadow-sm;
+  }
+}
+
+/* Background Cyber Grid Pattern Overlay */
+.bg-cyber-grid {
+  background-size: 30px 30px;
+  background-image: 
+    linear-gradient(to right, rgba(239, 68, 68, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(239, 68, 68, 0.04) 1px, transparent 1px);
+}
