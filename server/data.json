@@ -3,36 +3,38 @@
     {
       "id": "mem_1",
       "name": "Tatya Vinchu",
+      "rank": "leader",
       "contribution": 500,
-      "hasPaid": false,
-      "joinDate": "2026-07-31T06:59:26.515Z",
-      "order": 0,
-      "rank": "hustler"
+      "hasPaid": true,
+      "joinDate": "2026-08-01T13:49:11.626+00:00",
+      "order": 1
     },
     {
       "id": "mem_2",
       "name": "Baba Niranjana",
+      "rank": "underboss",
       "contribution": 300,
-      "hasPaid": false,
-      "joinDate": "2026-08-10T06:59:26.516Z",
-      "order": 1
+      "hasPaid": true,
+      "joinDate": "2026-08-11T13:49:11.627+00:00",
+      "order": 2
     },
     {
       "id": "mem_3",
       "name": "Chhota Rajan",
+      "rank": "enforcer",
       "contribution": 200,
-      "hasPaid": true,
-      "joinDate": "2026-08-20T06:59:26.516Z",
+      "hasPaid": false,
+      "joinDate": "2026-08-21T13:49:11.627+00:00",
       "order": 3
     },
     {
-      "id": "mem_1788077045612_gwtv0",
-      "order": 3,
-      "joinDate": "2026-08-30",
+      "id": "mem_1788185319034_34rb5",
+      "order": 4,
+      "joinDate": "2026-08-31T14:08:39.034Z",
       "hasPaid": false,
-      "contribution": 20000,
-      "name": "asdasd",
-      "rank": "recruit"
+      "contribution": 400,
+      "name": "Agent Tony",
+      "rank": "enforcer"
     }
   ],
   "announcement": {
@@ -42,50 +44,18 @@
   },
   "transactions": [
     {
-      "id": "tx_1788108351539_sssqo",
-      "date": "2026-08-30",
-      "description": "🎯 Payment Collected: sda (Syndicate Deal)",
-      "amount": 800,
+      "id": "tx_3",
+      "description": "Syndicate Arsenal Sale Income",
+      "amount": 3500,
+      "date": "2026-08-31T13:49:11.627Z",
       "type": "income",
       "category": "syndicate_deal"
     },
     {
-      "id": "tx_1788105611666_8ikzu",
-      "date": "2026-08-30",
-      "description": "🤝 Syndicate Deal Deposit",
-      "amount": 1000,
-      "type": "income",
-      "category": "syndicate_deal"
-    },
-    {
-      "id": "tx_1788077076966_9jwbd",
-      "date": "2026-08-30",
-      "description": "dasdad",
-      "amount": 50000,
-      "type": "expense",
-      "category": "operation"
-    },
-    {
-      "id": "tx_1788077066025_9lk8f",
-      "date": "2026-08-30",
-      "description": "xyz",
-      "amount": 50000,
-      "type": "income",
-      "category": "operation"
-    },
-    {
-      "id": "tx_1788074692255_oznx1",
-      "date": "2026-08-30",
-      "description": "Syndicate",
-      "amount": 15000,
-      "type": "income",
-      "category": "operation"
-    },
-    {
-      "id": "tx_1788074675356_ntyn8",
-      "date": "2026-08-30",
-      "description": "Syndicate",
-      "amount": 10000,
+      "id": "tx_2",
+      "description": "Safehouse Rent & Utility",
+      "amount": 1200,
+      "date": "2026-08-29T13:49:11.627Z",
       "type": "expense",
       "category": "operation"
     },
@@ -93,23 +63,15 @@
       "id": "tx_1",
       "description": "Weekly Dues Collection",
       "amount": 800,
-      "date": "2026-08-25T06:59:26.516Z",
+      "date": "2026-08-26T13:49:11.627Z",
       "type": "income",
       "category": "weekly_dues"
-    },
-    {
-      "id": "tx_2",
-      "description": "Safehouse Rent & Utility",
-      "amount": 1200,
-      "date": "2026-08-28T06:59:26.516Z",
-      "type": "expense",
-      "category": "operation"
     }
   ],
   "items": [
     {
       "id": "item_1",
-      "name": "SP-45",
+      "name": "AK-47",
       "price": 2500,
       "category": "weapon",
       "description": "Classic assault rifle"
@@ -122,13 +84,6 @@
       "description": "Level IIIA protection"
     },
     {
-      "id": "item_3",
-      "name": "Night Vision Goggles",
-      "price": 1200,
-      "category": "equipment",
-      "description": "See in the dark"
-    },
-    {
       "id": "item_4",
       "name": "Encrypted Radio",
       "price": 300,
@@ -136,140 +91,100 @@
       "description": "Secure comms"
     },
     {
+      "id": "item_7",
+      "name": "Heavy Tactical Armor Shipment",
+      "price": 3200,
+      "category": "syndicate",
+      "description": "Military Grade Syndicate Shipment"
+    },
+    {
+      "id": "item_3",
+      "name": "Night Vision Goggles",
+      "price": 1200,
+      "category": "equipment",
+      "description": "See in the dark"
+    },
+    {
       "id": "item_5",
       "name": "Smoke Grenades",
       "price": 150,
       "category": "tactical",
       "description": "Pack of 3"
+    },
+    {
+      "id": "item_8",
+      "name": "Special Ops Weaponry Bundle",
+      "price": 7500,
+      "category": "syndicate",
+      "description": "Exclusive Syndicate Meeting Deal"
+    },
+    {
+      "id": "item_6",
+      "name": "Syndicate Supply Crate",
+      "price": 5000,
+      "category": "syndicate",
+      "description": "Special Syndicate Meeting Supply Crate"
     }
   ],
   "orders": [
-    {
-      "id": "ord_1788077106806_c34gp",
-      "orderDate": "2026-08-30T08:05:06.799Z",
-      "status": "completed",
-      "memberId": "mem_user",
-      "memberName": "sda",
-      "items": [
-        {
-          "itemId": "item_2",
-          "itemName": "Bulletproof Vest",
-          "quantity": 1,
-          "price": 800
-        }
-      ],
-      "totalAmount": 800,
-      "category": "syndicate"
-    },
-    {
-      "id": "ord_1788074429190_czo6b",
-      "orderDate": "2026-08-30T07:20:29.158Z",
-      "status": "completed",
-      "memberId": "",
-      "memberName": "vinchu",
-      "items": [
-        {
-          "itemId": "item_1",
-          "itemName": "AK-47",
-          "quantity": 1,
-          "price": 2500
-        }
-      ],
-      "totalAmount": 2500
-    },
     {
       "id": "ord_1",
       "memberId": "mem_1",
       "memberName": "Tatya Vinchu",
       "items": [
         {
+          "price": 2500,
           "itemId": "item_1",
           "itemName": "AK-47",
-          "quantity": 1,
-          "price": 2500
+          "quantity": 1
         },
         {
+          "price": 800,
           "itemId": "item_2",
           "itemName": "Bulletproof Vest",
-          "quantity": 1,
-          "price": 800
+          "quantity": 1
         }
       ],
       "totalAmount": 3300,
-      "status": "cancelled",
-      "orderDate": "2026-08-29T06:59:26.516Z"
+      "status": "approved",
+      "category": "arsenal",
+      "orderDate": "2026-08-30T13:49:11.627+00:00"
     }
   ],
   "gangfund": {
     "id": "main",
     "baseAmount": 20000,
-    "lastUpdated": "2026-08-30T06:59:26.516Z",
+    "lastUpdated": "2026-08-31T13:49:11.627+00:00",
     "updatedBy": "system"
   },
   "weeklyPaymentRecords": [
     {
-      "id": "rec_1788074489912_zjp02",
-      "markedAt": "2026-08-30T07:21:29.906Z",
+      "id": "rec_1",
       "memberId": "mem_1",
       "memberName": "Tatya Vinchu",
-      "weekStart": "2026-08-29",
-      "weekEnd": "2026-09-05",
-      "weekNumber": 1,
+      "weekStart": "2026-08-25",
+      "weekEnd": "2026-08-31",
+      "weekNumber": 35,
       "contribution": 500,
       "hasPaid": true,
-      "paymentDate": "2026-08-30",
-      "markedBy": "admin"
+      "paymentDate": "2026-08-28",
+      "markedBy": "admin",
+      "markedAt": "2026-08-31T13:49:17.24192+00:00",
+      "notes": "Paid in full via Bank Transfer"
     },
     {
-      "id": "rec_1788074490565_zvcmh",
-      "markedAt": "2026-08-30T07:21:32.565Z",
+      "id": "rec_2",
       "memberId": "mem_2",
       "memberName": "Baba Niranjana",
-      "weekStart": "2026-08-29",
-      "weekEnd": "2026-09-05",
-      "weekNumber": 1,
+      "weekStart": "2026-08-25",
+      "weekEnd": "2026-08-31",
+      "weekNumber": 35,
       "contribution": 300,
       "hasPaid": true,
-      "paymentDate": "2026-08-30",
-      "markedBy": "admin"
-    },
-    {
-      "id": "rec_1788077115354_kan2p",
-      "markedAt": "2026-08-30T08:05:15.346Z",
-      "memberId": "mem_3",
-      "memberName": "Chhota Rajan",
-      "weekStart": "2026-08-29",
-      "weekEnd": "2026-09-05",
-      "weekNumber": 1,
-      "contribution": 200,
-      "hasPaid": true,
-      "paymentDate": "2026-08-30",
-      "markedBy": "admin"
-    },
-    {
-      "id": "rec_1788077116484_5av0d",
-      "markedAt": "2026-08-30T08:05:16.477Z",
-      "memberId": "mem_3",
-      "memberName": "Chhota Rajan",
-      "weekStart": "2026-08-22",
-      "weekEnd": "2026-08-29",
-      "weekNumber": 2,
-      "contribution": 200,
-      "hasPaid": true,
-      "paymentDate": "2026-08-30",
-      "markedBy": "admin"
-    },
-    {
-      "id": "rec_1788111084839_3lrxs",
-      "markedAt": "2026-08-30T17:31:24.376Z",
-      "memberId": "mem_1788077045612_gwtv0",
-      "memberName": "asdasd",
-      "weekStart": "2026-08-30",
-      "weekEnd": "2026-09-05",
-      "weekNumber": 1,
-      "contribution": 20000,
-      "hasPaid": false,
-      "markedBy": "admin"
+      "paymentDate": "2026-08-29",
+      "markedBy": "admin",
+      "markedAt": "2026-08-31T13:49:17.24192+00:00",
+      "notes": "Cash collection"
     }
   ],
   "auditLogs": [],
@@ -282,7 +197,7 @@
       "title": "🔴 VENDETTA LEADER | SoulCity GTA RP Patrol",
       "isLive": true,
       "addedBy": "Leader",
-      "createdAt": "2026-08-30T17:19:25.937Z"
+      "createdAt": "2026-08-31T13:49:16.69612+00:00"
     },
     {
       "id": "stream_2",
@@ -292,7 +207,7 @@
       "title": "🗡️ SYNDICATE HEIST & PATROL",
       "isLive": true,
       "addedBy": "Underboss",
-      "createdAt": "2026-08-30T17:19:25.937Z"
+      "createdAt": "2026-08-31T13:49:16.69612+00:00"
     }
   ]
 }
