@@ -43,37 +43,19 @@ function App() {
             headers: { Authorization: `Bearer ${accessToken}` }
           })
             .then(res => res.json())
-            .then(userData => {
+            .then(async (userData) => {
               const username = userData.global_name || userData.username || 'DiscordUser';
               const discordId = userData.id;
 
-              const adminIds = ['879604109366394880'];
-              const memberIds = ['879604109366394880'];
-
-              const isAdmin = adminIds.includes(discordId);
-              const isMember = memberIds.includes(discordId);
-
-              let finalMode: UserMode = 'gangmember';
-              if (targetMode === 'admin') {
-                if (!isAdmin) {
-                  alert(`Access Denied: Discord ID ${discordId} (${username}) is not authorized for Leader access.`);
-                  window.history.replaceState({}, document.title, window.location.pathname);
-                  return;
-                }
-                finalMode = 'admin';
+              const verifyRes = await apiService.verifyDiscordUser(discordId, username, targetMode);
+              if (verifyRes.success) {
+                setUserMode(verifyRes.mode as UserMode);
+                setDiscordUser(verifyRes.username || username);
+                soundFx.playSuccessSound();
               } else {
-                if (!isMember && !isAdmin) {
-                  alert(`Access Denied: Discord ID ${discordId} (${username}) is not authorized for Member access.`);
-                  window.history.replaceState({}, document.title, window.location.pathname);
-                  return;
-                }
-                finalMode = 'gangmember';
+                alert(verifyRes.message || `Access Denied: Discord ID ${discordId} is not authorized.`);
               }
-
-              setUserMode(finalMode);
-              setDiscordUser(username);
               window.history.replaceState({}, document.title, window.location.pathname);
-              soundFx.playSuccessSound();
             })
             .catch(err => {
               console.error('Discord Auth fetch failed:', err);
@@ -234,7 +216,7 @@ function App() {
                 {/* Live Real-time Status Badge */}
                 <div className="hidden md:flex items-center space-x-2 px-3 py-1.5 bg-black/60 rounded-lg border border-red-900/30 text-xs font-orbitron text-gray-300">
                   <Radio className="w-3.5 h-3.5 text-red-500 animate-pulse" />
-                  <span className="text-red-400">SSE LIVE</span>
+                  <span className="text-red-400">LIVE</span>
                 </div>
 
                 {/* Sound FX Controller */}
@@ -274,7 +256,14 @@ function App() {
                 {userMode === 'viewer2' ? (
                   <div className="flex items-center space-x-2">
                     <button
-                      onClick={() => window.location.href = apiService.getDiscordLoginUrl('gangmember')}
+                      onClick={() => {
+                        const url = apiService.getDiscordLoginUrl('gangmember');
+                        if (url.startsWith('#')) {
+                          alert('Discord login is optional. Use Leader Key (passcode) instead.');
+                          return;
+                        }
+                        window.location.href = url;
+                      }}
                       className="flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#5865F2] to-[#4752C4] hover:from-[#4752C4] hover:to-[#3b44a9] text-white rounded-xl transition-all duration-200 shadow-lg font-rajdhani font-bold text-sm"
                       title="Login with Discord"
                     >

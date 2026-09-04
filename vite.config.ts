@@ -8,6 +8,17 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    proxy: {
+      "/api": {
+        target: "http://localhost:5000",
+        changeOrigin: true,
+      },
+      "/socket.io": {
+        target: "http://localhost:5000",
+        changeOrigin: true,
+        ws: true,
+      },
+    },
   },
   plugins: [
     react(),
@@ -25,7 +36,6 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks: {
           'vendor-react': ['react', 'react-dom'],
-          'vendor-supabase': ['@supabase/supabase-js'],
           'vendor-lucide': ['lucide-react'],
         }
       }

@@ -57,7 +57,7 @@ export const ExpendituresTab = ({ isAdmin }: ExpendituresTabProps) => {
     fetchData();
 
     const unsubscribe = apiService.subscribeToTransactions((updatedTxs) => {
-      if (!isCancelled && Array.isArray(updatedTxs) && updatedTxs.length > 0) {
+      if (!isCancelled && Array.isArray(updatedTxs)) {
         setTransactions(updatedTxs);
         setLoading(false);
       }

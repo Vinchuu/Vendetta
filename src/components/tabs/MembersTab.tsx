@@ -85,7 +85,7 @@ export function MembersTab({ isAdmin }: MembersTabProps) {
     fetchMembers();
 
     const unsubscribe = firestoreService.subscribeToMembers((newMembers) => {
-      if (!isCancelled && Array.isArray(newMembers) && newMembers.length > 0) {
+      if (!isCancelled && Array.isArray(newMembers)) {
         setMembers(newMembers);
         setLoading(false);
       }

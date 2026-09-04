@@ -23,3 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 .env
+*.zip
+server/data/*.json
+server/data/*.tmp

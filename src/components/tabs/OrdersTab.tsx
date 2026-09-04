@@ -163,7 +163,7 @@ export const OrdersTab = (props: OrdersTabProps) => {
     fetchData();
 
     const unsubItems = firestoreService.subscribeToItems((newItems) => {
-      if (!isCancelled && Array.isArray(newItems) && newItems.length > 0) {
+      if (!isCancelled && Array.isArray(newItems)) {
         setAvailableItems(newItems);
         if (newItems.length > 0 && !selectedItemId) {
           setSelectedItemId(getItemId(newItems[0]));
@@ -173,7 +173,7 @@ export const OrdersTab = (props: OrdersTabProps) => {
     });
 
     const unsubOrders = firestoreService.subscribeToOrders((newOrders) => {
-      if (!isCancelled && Array.isArray(newOrders) && newOrders.length > 0) {
+      if (!isCancelled && Array.isArray(newOrders)) {
         setOrders(newOrders);
         setLoading(false);
       }

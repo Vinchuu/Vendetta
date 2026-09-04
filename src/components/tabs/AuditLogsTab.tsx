@@ -83,14 +83,14 @@ export function AuditLogsTab({ isAdmin }: AuditLogsTabProps) {
 
     // Subscribe to realtime updates
     const unsubMembers = apiService.subscribeToMembers((newMembers) => {
-      if (isSubscribed && Array.isArray(newMembers) && newMembers.length > 0) {
+      if (isSubscribed && Array.isArray(newMembers)) {
         setMembers(newMembers);
         setLoading(false);
       }
     });
 
     const unsubRecords = apiService.subscribeToWeeklyPaymentRecords((newRecords) => {
-      if (isSubscribed && Array.isArray(newRecords) && newRecords.length > 0) {
+      if (isSubscribed && Array.isArray(newRecords)) {
         setWeeklyRecords(newRecords);
         setLoading(false);
       }

@@ -26,7 +26,12 @@ export const LoginModal = ({ isOpen, onClose, onLogin }: LoginModalProps) => {
   const [selectedMode, setSelectedMode] = useState<UserMode>("gangmember");
 
   const handleDiscordLogin = () => {
-    window.location.href = apiService.getDiscordLoginUrl(selectedMode);
+    const url = apiService.getDiscordLoginUrl(selectedMode);
+    if (url.startsWith('#')) {
+      alert('Discord login is optional. Use Leader / Member passcode instead, or add VITE_DISCORD_CLIENT_ID if you want OAuth.');
+      return;
+    }
+    window.location.href = url;
   };
 
   const handleLocalLogin = async () => {
@@ -36,21 +41,10 @@ export const LoginModal = ({ isOpen, onClose, onLogin }: LoginModalProps) => {
         onLogin(selectedMode);
         onClose();
       } else {
-        alert(res.message || "Kyaa bee Shaane!! Nikal yaha se");
+        alert(res.message || "Invalid credentials! Access Denied.");
       }
     } catch (err: any) {
-      const adminPassword = "YK789";
-      const gangMemberPassword = "takla";
-
-      if (
-        (selectedMode === "admin" && password === adminPassword) ||
-        (selectedMode === "gangmember" && password === gangMemberPassword)
-      ) {
-        onLogin(selectedMode);
-        onClose();
-      } else {
-        alert(err.message || "Kyaa bee Shaane!! Nikal yaha se");
-      }
+      alert(err.message || "Login failed. Please check server connectivity.");
     }
     setPassword("");
   };
