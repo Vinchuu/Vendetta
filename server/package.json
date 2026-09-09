@@ -1,0 +1,22 @@
+{
+  "name": "vendetta-backend",
+  "version": "1.0.0",
+  "description": "Vendetta realtime backend with Express, Socket.IO, and MongoDB Atlas support",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.4.2",
+    "express": "^4.21.2",
+    "mongoose": "^9.9.4",
+    "socket.io": "^4.8.1"
+  }
+}

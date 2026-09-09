@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import http from 'http';
 import cors from 'cors';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { Server } from 'socket.io';
@@ -10,7 +11,16 @@ import { store, isMongoConnected, seedMongoIfEmpty } from './store.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 5000);
-const MONGODB_URI = process.env.MONGODB_URI || '';
+let rawMongoUri = (process.env.MONGODB_URI || '').trim().replace(/^["']|["']$/g, '');
+// Sanitize empty query params like appName= or trailing &/?
+if (rawMongoUri) {
+  rawMongoUri = rawMongoUri
+    .replace(/([?&])appName=(?:&|$)/gi, '$1')
+    .replace(/([?&])appName$/gi, '')
+    .replace(/[?&]$/, '')
+    .replace(/\?&/, '?');
+}
+const MONGODB_URI = rawMongoUri;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'YK789';
 const MEMBER_PASSWORD = process.env.MEMBER_PASSWORD || 'takla';
 const ADMIN_DISCORD_IDS = (process.env.ADMIN_DISCORD_IDS || '879604109366394880')
@@ -39,11 +49,21 @@ if (MONGODB_URI) {
 
 const app = express();
 const server = http.createServer(app);
+
+const corsOrigin = process.env.CLIENT_URL
+  ? process.env.CLIENT_URL.split(',').map((s) => s.trim())
+  : true;
+
+const corsOptions = {
+  origin: corsOrigin,
+  credentials: true,
+};
+
 const io = new Server(server, {
-  cors: { origin: true, credentials: true },
+  cors: corsOptions,
 });
 
-app.use(cors({ origin: true, credentials: true }));
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '2mb' }));
 
 function emit(channel, payload) {
@@ -399,15 +419,32 @@ app.delete('/api/streams/:id', async (req, res) => {
   }
 });
 
-// Static SPA serving
+// Static SPA serving or Standalone API root fallback
 const distDir = path.join(__dirname, '..', 'dist');
-app.use(express.static(distDir));
-app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api') || req.path.startsWith('/socket.io')) return next();
-  res.sendFile(path.join(distDir, 'index.html'), (err) => {
-    if (err) next();
+const indexHtmlPath = path.join(distDir, 'index.html');
+const hasClientBuild = fs.existsSync(indexHtmlPath);
+
+if (hasClientBuild) {
+  app.use(express.static(distDir));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/socket.io')) return next();
+    res.sendFile(indexHtmlPath, (err) => {
+      if (err) next();
+    });
   });
-});
+} else {
+  // API root fallback when running standalone (e.g. Railway backend deployment)
+  app.get('/', (_req, res) => {
+    res.json({
+      status: 'online',
+      service: 'Vendetta Realtime Backend',
+      health: '/api/health',
+      realtime: 'socket.io',
+      persistence: isMongoConnected() ? 'mongodb-atlas' : 'local-json',
+      timestamp: new Date().toISOString(),
+    });
+  });
+}
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Vendetta realtime backend on http://localhost:${PORT}`);
