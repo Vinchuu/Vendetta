@@ -179,7 +179,7 @@ export const store = {
 
   async updateMember(id, updates) {
     if (isMongoConnected()) {
-      return MemberModel.findOneAndUpdate({ id }, { $set: updates }, { new: true }).lean();
+      return MemberModel.findOneAndUpdate({ id }, { $set: updates }, { returnDocument: 'after' }).lean();
     }
     const member = db.members.find((m) => m.id === id);
     if (!member) return null;
@@ -266,7 +266,7 @@ export const store = {
 
   async updateItem(id, updates) {
     if (isMongoConnected()) {
-      return ItemModel.findOneAndUpdate({ id }, { $set: updates }, { new: true }).lean();
+      return ItemModel.findOneAndUpdate({ id }, { $set: updates }, { returnDocument: 'after' }).lean();
     }
     const item = db.items.find((i) => i.id === id);
     if (!item) return null;
@@ -318,7 +318,7 @@ export const store = {
 
   async updateOrder(id, updates) {
     if (isMongoConnected()) {
-      return OrderModel.findOneAndUpdate({ id }, { $set: updates }, { new: true }).lean();
+      return OrderModel.findOneAndUpdate({ id }, { $set: updates }, { returnDocument: 'after' }).lean();
     }
     const order = db.orders.find((o) => o.id === id);
     if (!order) return null;
@@ -366,7 +366,7 @@ export const store = {
       await GangFundModel.findOneAndUpdate(
         { id: 'main' },
         { $set: { baseAmount: Number(baseAmount || 0), lastUpdated: nowIso(), updatedBy: updatedBy || 'admin' } },
-        { upsert: true, new: true }
+        { upsert: true, returnDocument: 'after' }
       );
       return this.getGangFund();
     }
@@ -396,7 +396,7 @@ export const store = {
       await AnnouncementModel.findOneAndUpdate(
         { id: 'main' },
         { $set: updated },
-        { upsert: true, new: true }
+        { upsert: true, returnDocument: 'after' }
       );
       return updated;
     }
@@ -429,7 +429,7 @@ export const store = {
       notes: input.notes || '',
     };
     if (isMongoConnected()) {
-      await WeeklyRecordModel.findOneAndUpdate({ id }, { $set: record }, { upsert: true, new: true });
+      await WeeklyRecordModel.findOneAndUpdate({ id }, { $set: record }, { upsert: true, returnDocument: 'after' });
       return record;
     }
     const idx = db.weeklyPaymentRecords.findIndex((r) => r.id === id);
